@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainGym - Advanced Settings & Analytics</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            background-color: #0d1117; color: #c9d1d9; 
+            font-family: monospace, sans-serif; 
+            display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            min-height: 100vh; margin: 0; padding: 20px;
+        }
+        h1 { color: #58a6ff; text-shadow: 0 0 10px rgba(88, 166, 255, 0.4); margin-bottom: 20px; }
+        .container { 
+            background: #161b22; padding: 2rem; border-radius: 10px; 
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); text-align: center; 
+            width: 100%; max-width: 500px;
+        }
+        .btn { 
+            background: #238636; color: white; border: none; padding: 10px 15px; 
+            cursor: pointer; border-radius: 6px; font-weight: bold; font-family: monospace;
+            font-size: 1rem; margin: 5px; transition: 0.2s background; width: 80%; max-width: 300px;
+        }
+        .btn:hover { background: #2ea043; }
+        .btn-secondary { background: #30363d; margin-top: 15px; }
+        .btn-secondary:hover { background: #484f58; }
+        .btn-danger { background: #da3633; }
+        .btn-danger:hover { background: #f85149; }
+        
+        input, select { 
+            background: #0d1117; color: #58a6ff; border: 1px solid #30363d; 
+            padding: 8px; font-size: 1.1rem; outline: none; border-radius: 5px; font-family: monospace;
+            width: 80%; max-width: 250px; margin-bottom: 15px;
+        }
+        
+        .screen { display: none; }
+        .active { display: block; }
+        .feedback { min-height: 24px; font-weight: bold; margin-top: 10px; }
+        .correct { color: #3fb950; }
+        .wrong { color: #f85149; }
+
+        .stimulus-box {
+            font-size: 2.5rem; font-weight: bold; min-height: 80px; display: flex;
+            align-items: center; justify-content: center; margin: 15px 0;
+            background: #0d1117; border-radius: 8px; border: 1px solid #30363d;
+        }
+
+        .results-board {
+            background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+            padding: 15px; margin-top: 15px; text-align: left; display: none; font-size: 0.95rem; line-height: 1.6;
+        }
+        .results-board span { color: #58a6ff; font-weight: bold; }
+
+        /* Memory Grid */
+        .memory-grid { display: grid; gap: 10px; margin: 20px auto; justify-content: center; }
+        .card {
+            background: #21262d; border: 2px solid #30363d; border-radius: 8px;
+            width: 60px; height: 60px; font-size: 1.5rem; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; user-select: none;
+        }
+        .card.revealed { background: #30363d; border-color: #58a6ff; }
+        .card.matched { background: #1f6feb; border-color: #58a6ff; cursor: default; }
+
+        /* Score Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem;}
+        th, td { border: 1px solid #30363d; padding: 8px; text-align: left; }
+        th { background: #0d1117; color: #58a6ff; }
+        #score-list-container { max-height: 250px; overflow-y: auto; margin-bottom: 15px;}
+    </style>
+</head>
+<body>
+
+    <h1>BrainGym</h1>
+
+    <!-- 1. MAIN MENU -->
+    <div id="menu-screen" class="container screen active">
+        <h2>Training Modules</h2>
+        <button class="btn" onclick="openSetup('math')">1. Mental Math Sprint</button><br>
+        <button class="btn" onclick="openSetup('stroop')">2. Stroop Test</button><br>
+        <button class="btn" onclick="openSetup('memory')">3. Memory Match</button><br>
+        <button class="btn" onclick="openSetup('nback')">4. N-Back Test</button><br>
+        <hr style="border-color:#30363d; margin: 20px 0;">
+        <button class="btn btn-secondary" onclick="viewScores()">View Score History</button>
+    </div>
+
+    <!-- 2. UNIFIED SETUP SCREEN -->
+    <div id="setup-screen" class="container screen">
+        <h2 id="setup-title">Game Setup</h2>
+        
+        <p>Select Difficulty:</p>
+        <select id="game-level">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+        </select>
+
+        <p id="time-limit-label">Select Time Limit:</p>
+        <select id="game-time">
+            <!-- Options populated dynamically by JS -->
+        </select>
+        
+        <br><br>
+        <button class="btn" onclick="launchGame()">Start Game</button><br>
+        <button class="btn btn-secondary" onclick="returnToMenu()">Back</button>
+    </div>
+
+    <!-- 3. SCORE HISTORY SCREEN -->
+    <div id="scores-screen" class="container screen">
+        <h2>Score History</h2>
+        <div id="score-list-container">
+            <table id="scores-table">
+                <thead><tr><th>Game</th><th>Score</th><th>Date</th></tr></thead>
+                <tbody id="scores-body"></tbody>
+            </table>
+        </div>
+        <button class="btn btn-danger" onclick="clearScores()">Delete All Scores</button><br>
+        <button class="btn btn-secondary" onclick="returnToMenu()">Back to Menu</button>
+    </div>
+
+    <!-- MENTAL MATH SPRINT -->
+    <div id="math-screen" class="container screen">
+        <h2>Mental Math Sprint</h2>
+        <div class="stimulus-box" id="math-problem">Ready?</div>
+        <div id="math-game-area">
+            <input type="number" id="math-input" autocomplete="off">
+            <button class="btn" style="width:120px;" onclick="checkMathAnswer()">Submit</button>
+        </div>
+        <p class="feedback" id="math-feedback"></p>
+        <h3 id="math-score">Score: 0</h3>
+        <div class="results-board" id="math-results"></div>
+        <button class="btn btn-secondary" onclick="returnToMenu()">Back to Menu</button>
+    </div>
+
+    <!-- STROOP TEST -->
+    <div id="stroop-screen" class="container screen">
+        <h2>Stroop Test</h2>
+        <p>Select the <strong>FONT COLOR</strong></p>
+        <div class="stimulus-box" id="stroop-display">START</div>
+        <div id="stroop-buttons" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px;"></div>
+        <p class="feedback" id="stroop-feedback"></p>
+        <h3 id="stroop-score">Score: 0</h3>
+        <div class="results-board" id="stroop-results"></div>
+        <button class="btn btn-secondary" onclick="returnToMenu()">Back to Menu</button>
+    </div>
+
+    <!-- MEMORY MATCH -->
+    <div id="memory-screen" class="container screen">
+        <h2>Memory Match</h2>
+        <h3 id="memory-timer" style="color:#f85149; display:none;">Time Left: --</h3>
+        <div class="memory-grid" id="memory-grid"></div>
+        <p class="feedback" id="memory-feedback"></p>
+        <h3 id="memory-moves">Moves: 0</h3>
+        <div class="results-board" id="memory-results"></div>
+        <button class="btn btn-secondary" onclick="returnToMenu()">Back to Menu</button>
+    </div>
+
+    <!-- N-BACK TEST -->
+    <div id="nback-screen" class="container screen">
+        <h2 id="nback-header">N-Back Test</h2>
+        <div class="stimulus-box" id="nback-display">-</div>
+        <div id="nback-game-area">
+            <button class="btn" onclick="registerNBackMatch()">Match!</button>
+        </div>
+        <p class="feedback" id="nback-feedback"></p>
+        <h3 id="nback-score">Score: 0</h3>
+        <div class="results-board" id="nback-results"></div>
+        <button class="btn btn-secondary" onclick="returnToMenu()">Back to Menu</button>
+    </div>
+
+    <script>
+        // ================= GLOBAL STATE & ROUTING =================
+        let currentGameMode = '';
+        const bestScores = { math: 0, stroop: 0, memory: 0, nback: 0 };
+
+        function updateBestScore(game, score) {
+            if (score > bestScores[game]) bestScores[game] = score;
+            return bestScores[game];
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function returnToMenu() {
+            clearTimeout(mathTimeout); clearTimeout(stroopTimeout); clearInterval(nBackInterval); clearInterval(memoryTimer);
+            showScreen('menu-screen');
+        }
+
+        async function submitScore(gameName, score) {
+            try {
+                await fetch('/api/scores', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ game: gameName, score: score })
+                });
+            } catch (err) { console.error("Failed to save:", err); }
+        }
+
+        // ================= SETUP SCREEN LOGIC =================
+        function openSetup(gameId) {
+            currentGameMode = gameId;
+            const timeSelect = document.getElementById('game-time');
+            const label = document.getElementById('time-limit-label');
+            timeSelect.innerHTML = ''; 
+
+            if (gameId === 'math' || gameId === 'stroop') {
+                document.getElementById('setup-title').innerText = gameId === 'math' ? "Math Sprint Settings" : "Stroop Settings";
+                label.innerText = "Time Per Question:";
+                timeSelect.innerHTML = `
+                    <option value="0">No Limit</option>
+                    <option value="5000">5 Seconds</option>
+                    <option value="3000">3 Seconds</option>
+                    <option value="1500">1.5 Seconds</option>
+                `;
+            } else if (gameId === 'memory') {
+                document.getElementById('setup-title').innerText = "Memory Match Settings";
+                label.innerText = "Total Game Time:";
+                timeSelect.innerHTML = `
+                    <option value="0">No Limit</option>
+                    <option value="60">60 Seconds</option>
+                    <option value="45">45 Seconds</option>
+                    <option value="30">30 Seconds</option>
+                `;
+            } else if (gameId === 'nback') {
+                document.getElementById('setup-title').innerText = "N-Back Settings";
+                label.innerText = "Speed (Time between letters):";
+                timeSelect.innerHTML = `
+                    <option value="2500">Slow (2.5s)</option>
+                    <option value="1500">Normal (1.5s)</option>
+                    <option value="800">Fast (0.8s)</option>
+                `;
+            }
+            showScreen('setup-screen');
+        }
+
+        function launchGame() {
+            const level = document.getElementById('game-level').value;
+            const time = parseInt(document.getElementById('game-time').value);
+            
+            if (currentGameMode === 'math') startMathGame(level, time);
+            else if (currentGameMode === 'stroop') startStroopGame(level, time);
+            else if (currentGameMode === 'memory') startMemoryGame(level, time);
+            else if (currentGameMode === 'nback') startNBackGame(level, time);
+        }
+
+        // ================= SCORE HISTORY LOGIC =================
+        async function viewScores() {
+            showScreen('scores-screen');
+            const tbody = document.getElementById('scores-body');
+            tbody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
+            try {
+                const res = await fetch('/api/scores');
+                const scores = await res.json();
+                tbody.innerHTML = '';
+                if (scores.length === 0) tbody.innerHTML = '<tr><td colspan="3">No scores yet!</td></tr>';
+                scores.forEach(s => {
+                    const date = new Date(s.timestamp).toLocaleDateString() + " " + new Date(s.timestamp).toLocaleTimeString();
+                    tbody.innerHTML += `<tr><td>${s.game}</td><td>${s.score}</td><td>${date}</td></tr>`;
+                });
+            } catch (err) { tbody.innerHTML = '<tr><td colspan="3">Error loading scores.</td></tr>'; }
+        }
+
+        async function clearScores() {
+            if(!confirm("Are you sure you want to delete all previous scores?")) return;
+            try {
+                await fetch('/api/scores', { method: 'DELETE' });
+                viewScores(); // Refresh list
+            } catch (err) { console.error("Failed to delete scores", err); }
+        }
+
+        // ================= 1. MENTAL MATH SPRINT =================
+        let mathStats = {}, mathAnswer = 0, mathTrials = 0, mathLimit = 0, mathLvl = 'easy';
+        let mathStartTime, mathTimeout;
+
+        function startMathGame(level, limit) {
+            mathStats = { score: 0, correct: 0, incorrect: 0, timeouts: 0, totalTime: 0 };
+            mathTrials = 0; mathLimit = limit; mathLvl = level;
+            document.getElementById('math-results').style.display = 'none';
+            document.getElementById('math-game-area').style.display = 'block';
+            document.getElementById('math-score').innerText = `Score: 0`;
+            showScreen('math-screen');
+            nextMathProblem();
+        }
+
+        function nextMathProblem() {
+            if (mathTrials >= 10) return endMathGame();
+
+            // Difficulty Logic
+            let maxNum = mathLvl === 'easy' ? 20 : (mathLvl === 'medium' ? 50 : 100);
+            const a = Math.floor(Math.random() * maxNum) + 1;
+            const b = Math.floor(Math.random() * maxNum) + 1;
+            
+            if (Math.random() > 0.5) { 
+                mathAnswer = a + b; 
+                document.getElementById('math-problem').innerText = `${a} + ${b}`; 
+            } else { 
+                const max = Math.max(a, b); const min = Math.min(a, b); 
+                mathAnswer = max - min; 
+                document.getElementById('math-problem').innerText = `${max} - ${min}`; 
+            }
+            
+            document.getElementById('math-input').value = '';
+            document.getElementById('math-input').focus();
+            mathStartTime = performance.now();
+
+            if (mathLimit > 0) {
+                mathTimeout = setTimeout(() => {
+                    mathStats.timeouts++; mathStats.score -= 2;
+                    document.getElementById('math-feedback').innerText = "Timeout!";
+                    document.getElementById('math-feedback').className = "feedback wrong";
+                    mathTrials++; nextMathProblem();
+                }, mathLimit);
+            }
+        }
+
+        function checkMathAnswer() {
+            const val = parseInt(document.getElementById('math-input').value);
+            if (isNaN(val)) return;
+            clearTimeout(mathTimeout);
+            mathStats.totalTime += (performance.now() - mathStartTime);
+            
+            if (val === mathAnswer) {
+                mathStats.score += (mathLvl==='hard'?15:10); mathStats.correct++;
+                document.getElementById('math-feedback').innerText = "Correct!"; document.getElementById('math-feedback').className = "feedback correct";
+            } else {
+                mathStats.score -= 3; mathStats.incorrect++;
+                document.getElementById('math-feedback').innerText = `Wrong! Was ${mathAnswer}`; document.getElementById('math-feedback').className = "feedback wrong";
+            }
+            mathTrials++; document.getElementById('math-score').innerText = `Score: ${mathStats.score}`;
+            nextMathProblem();
+        }
+        document.getElementById('math-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkMathAnswer(); });
+
+        function endMathGame() {
+            document.getElementById('math-problem').innerText = "Complete!";
+            document.getElementById('math-game-area').style.display = 'none';
+            const acc = ((mathStats.correct / 10) * 100).toFixed(1);
+            document.getElementById('math-results').innerHTML = `Final Score: <span>${mathStats.score}</span><br>Accuracy: <span>${acc}%</span>`;
+            document.getElementById('math-results').style.display = 'block';
+            submitScore(`Math (${mathLvl})`, mathStats.score);
+        }
+
+        // ================= 2. STROOP TEST =================
+        const allColors = [{n:'RED',h:'#f85149'}, {n:'BLUE',h:'#58a6ff'}, {n:'GREEN',h:'#3fb950'}, {n:'YELLOW',h:'#d29922'}, {n:'PURPLE',h:'#bc8cff'}, {n:'ORANGE',h:'#ff7b72'}];
+        let stroopStats = {}, stroopTrials = 0, correctColor = '', stroopStartTime, stroopTimeout, stroopLimit = 0, activeColors = [];
+
+        function startStroopGame(level, limit) {
+            stroopStats = { score: 0, correct: 0, incorrect: 0, timeouts: 0, totalTime: 0 };
+            stroopTrials = 0; stroopLimit = limit;
+            
+            // Difficulty logic: More colors for harder levels
+            let colorCount = level === 'easy' ? 3 : (level === 'medium' ? 4 : 6);
+            activeColors = allColors.slice(0, colorCount);
+            
+            const btnContainer = document.getElementById('stroop-buttons');
+            btnContainer.innerHTML = '';
+            activeColors.forEach(c => {
+                btnContainer.innerHTML += `<button class="btn" style="width: 80px;" onclick="checkStroopAnswer('${c.n}')">${c.n}</button>`;
+            });
+
+            document.getElementById('stroop-results').style.display = 'none';
+            document.getElementById('stroop-buttons').style.display = 'flex';
+            document.getElementById('stroop-score').innerText = 'Score: 0';
+            showScreen('stroop-screen');
+            nextStroopTrial();
+        }
+
+        function nextStroopTrial() {
+            if (stroopTrials >= 10) return endStroopGame();
+            
+            const wordObj = activeColors[Math.floor(Math.random() * activeColors.length)];
+            const colorObj = activeColors[Math.floor(Math.random() * activeColors.length)];
+            correctColor = colorObj.n;
+            
+            const display = document.getElementById('stroop-display');
+            display.innerText = wordObj.n; display.style.color = colorObj.h;
+            stroopStartTime = performance.now();
+
+            if (stroopLimit > 0) {
+                stroopTimeout = setTimeout(() => {
+                    stroopStats.timeouts++; stroopStats.score -= 2;
+                    stroopTrials++; nextStroopTrial();
+                }, stroopLimit);
+            }
+        }
+
+        function checkStroopAnswer(selectedColor) {
+            clearTimeout(stroopTimeout);
+            if (selectedColor === correctColor) { stroopStats.score += 10; stroopStats.correct++; } 
+            else { stroopStats.score -= 5; stroopStats.incorrect++; }
+            stroopTrials++; document.getElementById('stroop-score').innerText = `Score: ${stroopStats.score}`;
+            nextStroopTrial();
+        }
+
+        function endStroopGame() {
+            document.getElementById('stroop-display').innerText = "Complete!";
+            document.getElementById('stroop-buttons').style.display = 'none';
+            document.getElementById('stroop-results').innerHTML = `Final Score: <span>${stroopStats.score}</span>`;
+            document.getElementById('stroop-results').style.display = 'block';
+            submitScore(`Stroop (${activeColors.length} colors)`, stroopStats.score);
+        }
+
+        // ================= 3. MEMORY MATCH =================
+        const icons = ['⚡','💡','🔥','💎','🚀','🎯','🌟','🍎'];
+        let flippedCards = [], memStats = {}, memLvl = '', memoryTimer, memTimeLeft = 0;
+
+        function startMemoryGame(level, limit) {
+            memStats = { score: 0, moves: 0, matchedPairs: 0 };
+            flippedCards = []; memLvl = level;
+            document.getElementById('memory-results').style.display = 'none';
+            document.getElementById('memory-moves').innerText = `Moves: 0`;
+            showScreen('memory-screen');
+
+            // Difficulty Logic
+            let pairs = level === 'easy' ? 4 : (level === 'medium' ? 6 : 8);
+            let memCards = [...icons.slice(0, pairs), ...icons.slice(0, pairs)].sort(() => 0.5 - Math.random());
+            
+            const grid = document.getElementById('memory-grid');
+            grid.style.gridTemplateColumns = `repeat(${level === 'hard' ? 4 : (level==='easy'?4:3)}, 60px)`;
+            grid.innerHTML = '';
+            
+            memCards.forEach((icon) => {
+                const card = document.createElement('div');
+                card.className = 'card'; card.dataset.icon = icon; card.innerText = '?';
+                card.onclick = () => flipCard(card, pairs);
+                grid.appendChild(card);
+            });
+
+            // Global Timer Logic
+            const timerDisplay = document.getElementById('memory-timer');
+            if (limit > 0) {
+                memTimeLeft = limit;
+                timerDisplay.style.display = 'block';
+                timerDisplay.innerText = `Time Left: ${memTimeLeft}s`;
+                memoryTimer = setInterval(() => {
+                    memTimeLeft--;
+                    timerDisplay.innerText = `Time Left: ${memTimeLeft}s`;
+                    if (memTimeLeft <= 0) { clearInterval(memoryTimer); endMemoryGame(false); }
+                }, 1000);
+            } else { timerDisplay.style.display = 'none'; }
+        }
+
+        function flipCard(card, totalPairs) {
+            if (flippedCards.length >= 2 || card.classList.contains('revealed') || card.classList.contains('matched')) return;
+            card.innerText = card.dataset.icon; card.classList.add('revealed');
+            flippedCards.push(card);
+
+            if (flippedCards.length === 2) {
+                memStats.moves++; document.getElementById('memory-moves').innerText = `Moves: ${memStats.moves}`;
+                const [c1, c2] = flippedCards;
+                if (c1.dataset.icon === c2.dataset.icon) {
+                    c1.classList.add('matched'); c2.classList.add('matched');
+                    memStats.matchedPairs++; flippedCards = [];
+                    if (memStats.matchedPairs === totalPairs) { clearInterval(memoryTimer); endMemoryGame(true); }
+                } else {
+                    setTimeout(() => { c1.innerText='?'; c2.innerText='?'; c1.classList.remove('revealed'); c2.classList.remove('revealed'); flippedCards=[]; }, 700);
+                }
+            }
+        }
+
+        function endMemoryGame(won) {
+            memStats.score = won ? Math.max(10, 100 - (memStats.moves * 5) + (memTimeLeft * 2)) : 0;
+            document.getElementById('memory-results').innerHTML = won ? `You Won! Score: <span>${memStats.score}</span>` : `Time's Up!`;
+            document.getElementById('memory-results').style.display = 'block';
+            if(won) submitScore(`Memory (${memLvl})`, memStats.score);
+        }
+
+        // ================= 4. N-BACK TEST =================
+        const letters = ['A', 'B', 'C', 'D'];
+        let nBackSeq = [], nBackStats = {}, nBackStep = 0, nBackInterval = null, nBackN = 2, currentIsMatch = false, userClaimed = false;
+
+        function startNBackGame(level, limit) {
+            nBackSeq = []; nBackStep = 0; currentIsMatch = false; userClaimed = false;
+            // Difficulty logic: N-value
+            nBackN = level === 'easy' ? 1 : (level === 'medium' ? 2 : 3);
+            document.getElementById('nback-header').innerText = `N-Back Test (${nBackN}-Back)`;
+            
+            nBackStats = { score: 0, hits: 0, misses: 0, totalSteps: 12 };
+            document.getElementById('nback-results').style.display = 'none';
+            document.getElementById('nback-game-area').style.display = 'block';
+            document.getElementById('nback-score').innerText = 'Score: 0';
+            showScreen('nback-screen');
+            
+            // Limit acts as interval speed
+            nBackInterval = setInterval(runNBackStep, limit);
+        }
+
+        function runNBackStep() {
+            if (nBackStep > 0 && currentIsMatch && !userClaimed) nBackStats.misses++;
+            if (nBackStep >= nBackStats.totalSteps) return endNBackGame();
+
+            userClaimed = false;
+            let nextLetter;
+            if (nBackStep >= nBackN && Math.random() < 0.35) {
+                nextLetter = nBackSeq[nBackStep - nBackN];
+                currentIsMatch = true;
+            } else {
+                nextLetter = letters[Math.floor(Math.random() * letters.length)];
+                currentIsMatch = (nBackStep >= nBackN && nextLetter === nBackSeq[nBackStep - nBackN]);
+            }
+
+            nBackSeq.push(nextLetter);
+            document.getElementById('nback-display').innerText = nextLetter;
+            nBackStep++;
+        }
+
+        function registerNBackMatch() {
+            if (userClaimed || nBackStep <= nBackN) return;
+            userClaimed = true;
+            if (currentIsMatch) { nBackStats.score += 15; nBackStats.hits++; } 
+            else { nBackStats.score -= 5; }
+            document.getElementById('nback-score').innerText = `Score: ${nBackStats.score}`;
+        }
+
+        function endNBackGame() {
+            clearInterval(nBackInterval);
+            document.getElementById('nback-display').innerText = "Done!";
+            document.getElementById('nback-game-area').style.display = 'none';
+            document.getElementById('nback-results').innerHTML = `Final Score: <span>${nBackStats.score}</span>`;
+            document.getElementById('nback-results').style.display = 'block';
+            submitScore(`${nBackN}-Back Test`, nBackStats.score);
+        }
+    </script>
+</body>
+</html>
