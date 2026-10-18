@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainGym - Interactive Cognitive Training</title>
+    <style>
+        /* Base Styles & Theme */
+        * { box-sizing: border-box; scroll-behavior: smooth; }
+        body { 
+            background-color: #0d1117; 
+            color: #c9d1d9; 
+            font-family: monospace, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Interactive Background Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            opacity: 0.35;
+        }
+
+        /* Top Middle Navigation Button */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 80px;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .btn-test {
+            background: #238636;
+            color: white;
+            text-decoration: none;
+            padding: 12px 34px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            font-family: monospace;
+            border-radius: 8px;
+            border: 2px solid #3fb950;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(46, 160, 67, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        
+        .btn-test:hover {
+            background: #2ea043;
+            box-shadow: 0 0 30px rgba(63, 185, 80, 0.9);
+            transform: translateY(-2px) scale(1.03);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1000px;
+            margin: 110px auto 60px auto;
+            padding: 0 20px;
+        }
+        
+        h1, h2, h3 { color: #58a6ff; margin-top: 0; }
+        h1 { text-align: center; font-size: 3.2rem; text-shadow: 0 0 20px rgba(88, 166, 255, 0.4); margin-bottom: 10px; }
+        .subtitle { text-align: center; font-size: 1.2rem; margin-bottom: 40px; color: #8b949e; }
+
+        /* Hero SVG Banner */
+        .hero-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 50px;
+        }
+
+        .pulse-svg {
+            width: 150px;
+            height: 150px;
+            filter: drop-shadow(0 0 15px rgba(88, 166, 255, 0.6));
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+        }
+
+        /* Dynamic Sections with Split Image Layout */
+        section {
+            background: rgba(22, 27, 34, 0.9);
+            padding: 35px;
+            border-radius: 14px;
+            border: 1px solid #30363d;
+            margin-bottom: 40px;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out, border-color 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+
+        section:hover {
+            border-color: #58a6ff;
+        }
+
+        section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .split-section {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .split-section.reverse {
+            flex-direction: row-reverse;
+        }
+
+        .split-text {
+            flex: 1 1 400px;
+        }
+
+        .split-image {
+            flex: 1 1 300px;
+            overflow: hidden;
+            border-radius: 10px;
+            border: 2px solid #30363d;
+            box-shadow: 0 0 20px rgba(88, 166, 255, 0.15);
+        }
+
+        .split-image img {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s ease;
+        }
+
+        .split-image:hover img {
+            transform: scale(1.08);
+        }
+
+        /* Grid for the Games */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+            gap: 25px;
+            margin-top: 25px;
+        }
+        
+        .game-card {
+            background: #21262d;
+            border-radius: 12px;
+            border: 1px solid #30363d;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .game-card:hover {
+            transform: translateY(-7px);
+            border-color: #58a6ff;
+            box-shadow: 0 8px 25px rgba(88, 166, 255, 0.25);
+        }
+
+        .card-img-wrapper {
+            width: 100%;
+            height: 150px;
+            overflow: hidden;
+            position: relative;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .card-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .game-card:hover .card-img-wrapper img {
+            transform: scale(1.1);
+        }
+
+        .card-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(13, 17, 23, 0.85);
+            color: #3fb950;
+            border: 1px solid #3fb950;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+        
+        .game-card h3 { color: #f0f6fc; margin-bottom: 10px; font-size: 1.2rem; }
+        .game-card p { margin: 0; font-size: 0.92rem; color: #8b949e; }
+        
+        /* Highlight Text */
+        .highlight { color: #f85149; font-weight: bold; }
+        .highlight-green { color: #3fb950; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- INTERACTIVE NEURAL NETWORK BACKGROUND -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- TOP MIDDLE BUTTON -->
+    <header>
+        <a href="index.html" class="btn-test">⚡ Test Yourself</a>
+    </header>
+
+    <div class="container">
+        
+        <!-- INTRO & GLOWING SVG BRAIN -->
+        <h1>BrainGym</h1>
+        <p class="subtitle">Full-Stack Interactive Cognitive Assessment & Brain Training Platform</p>
+
+        <div class="hero-visual">
+            <svg class="pulse-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="44" stroke="#30363d" stroke-width="2" stroke-dasharray="6 4"/>
+                <path d="M35 30 C20 30, 20 50, 30 55 C20 65, 30 80, 45 75 L45 25 C40 25, 35 28, 35 30 Z" stroke="#58a6ff" stroke-width="3" fill="rgba(88,166,255,0.1)"/>
+                <path d="M65 30 C80 30, 80 50, 70 55 C80 65, 70 80, 55 75 L55 25 C60 25, 65 28, 65 30 Z" stroke="#3fb950" stroke-width="3" fill="rgba(63,185,80,0.1)"/>
+                <circle cx="35" cy="42" r="3" fill="#58a6ff"/>
+                <circle cx="38" cy="62" r="3" fill="#58a6ff"/>
+                <circle cx="65" cy="42" r="3" fill="#3fb950"/>
+                <circle cx="62" cy="62" r="3" fill="#3fb950"/>
+                <line x1="35" y1="42" x2="65" y2="42" stroke="#c9d1d9" stroke-width="1.5" stroke-dasharray="2 2"/>
+                <line x1="38" y1="62" x2="62" y2="62" stroke="#c9d1d9" stroke-width="1.5" stroke-dasharray="2 2"/>
+            </svg>
+        </div>
+
+        <!-- ABOUT PLATFORM -->
+        <section class="dynamic-section">
+            <div class="split-section">
+                <div class="split-text">
+                    <h2>About The Platform</h2>
+                    <p>BrainGym is a lightweight, high-performance web platform designed to evaluate and train core cognitive functions through gamified, interactive mental exercises. Built with a responsive dark-neon UI, it provides users with scientific performance metrics, tracking accuracy and reaction times down to the millisecond.</p>
+                </div>
+                <div class="split-image">
+                    <img src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=800&q=80" alt="AI and Neural Network Visualization">
+                </div>
+            </div>
+        </section>
+
+        <!-- THE PROBLEM -->
+        <section class="dynamic-section">
+            <div class="split-section reverse">
+                <div class="split-text">
+                    <h2>The Problem</h2>
+                    <p>In today's fast-paced digital world, maintaining mental agility is becoming increasingly difficult. People are facing:</p>
+                    <ul>
+                        <li><span class="highlight">Cognitive Decline:</span> Prolonged screen time and passive media consumption lead to reduced attention spans and mental fatigue.</li>
+                        <li><span class="highlight">Lack of Accessible Benchmarking:</span> Clinical brain-training software is often locked behind paywalls or requires bulky installations.</li>
+                        <li><span class="highlight">No Transparent Analytics:</span> Casual games fail to provide scientific data like hit/miss ratios or millisecond latency tracking.</li>
+                    </ul>
+                </div>
+                <div class="split-image">
+                    <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80" alt="Digital Overload and Cyber Matrix">
+                </div>
+            </div>
+        </section>
+
+        <!-- THE SOLUTION -->
+        <section class="dynamic-section">
+            <div class="split-section">
+                <div class="split-text">
+                    <h2>The Solution</h2>
+                    <p>BrainGym solves these issues by providing a <span class="highlight-green">free, data-driven, and highly accessible</span> training environment.</p>
+                    <p>Users can instantly log on, select their difficulty tier, and undergo rigorous mental conditioning. Every session concludes with an advanced analytics board that displays personal accuracy, speed, and direct comparisons to average human baseline benchmarks.</p>
+                </div>
+                <div class="split-image">
+                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80" alt="Performance Analytics Dashboard">
+                </div>
+            </div>
+        </section>
+
+        <!-- THE GAMES -->
+        <section class="dynamic-section">
+            <h2>The Training Modules</h2>
+            <p>Our platform features five distinct, scientifically-inspired assessment modules:</p>
+            
+            <div class="games-grid">
+                <!-- Game 1 -->
+                <div class="game-card">
+                    <div class="card-img-wrapper">
+                        <img src="https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80" alt="Reaction Time Reflexes">
+                        <span class="card-badge">Reflexes</span>
+                    </div>
+                    <div class="card-content">
+                        <h3>1. Reaction Time Test</h3>
+                        <p>Measures pure neuromuscular reflex latency by tracking how quickly you respond to a sudden visual color shift in milliseconds.</p>
+                    </div>
+                </div>
+
+                <!-- Game 2 -->
+                <div class="game-card">
+                    <div class="card-img-wrapper">
+                        <img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=600&q=80" alt="Stroop Color Conflict">
+                        <span class="card-badge">Focus</span>
+                    </div>
+                    <div class="card-content">
+                        <h3>2. Stroop Test</h3>
+                        <p>Evaluates cognitive flexibility and selective attention by forcing your brain to process conflicting visual colors and words.</p>
+                    </div>
+                </div>
+
+                <!-- Game 3 -->
+                <div class="game-card">
+                    <div class="card-img-wrapper">
+                        <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80" alt="Digital Number Matrix">
+                        <span class="card-badge">Recall</span>
+                    </div>
+                    <div class="card-content">
+                        <h3>3. Memory Match</h3>
+                        <p>Tests short-term visual recall. Memorize a progressively expanding sequence of random digits before they vanish.</p>
+                    </div>
+                </div>
+
+                <!-- Game 4 -->
+                <div class="game-card">
+                    <div class="card-img-wrapper">
+                        <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80" alt="Mental Math Calculation">
+                        <span class="card-badge">Speed</span>
+                    </div>
+                    <div class="card-content">
+                        <h3>4. Mental Math Sprint</h3>
+                        <p>Challenges quantitative processing speed and arithmetic agility under strict, customizable countdown timers.</p>
+                    </div>
+                </div>
+
+                <!-- Game 5 -->
+                <div class="game-card">
+                    <div class="card-img-wrapper">
+                        <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80" alt="Neural Circuit Board">
+                        <span class="card-badge">Memory</span>
+                    </div>
+                    <div class="card-content">
+                        <h3>5. N-Back Test</h3>
+                        <p>The ultimate working memory challenge. Monitor a rapid stream of letters and flag matches from 'N' steps back.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- JAVASCRIPT FOR SCROLL ANIMATIONS & NEURAL NETWORK BACKGROUND -->
+    <script>
+        // 1. Scroll Fade-In Observer
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.15 });
+
+        document.querySelectorAll('.dynamic-section').forEach(section => {
+            observer.observe(section);
+        });
+
+        // 2. Interactive Neural Network Background Canvas
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        for (let i = 0; i < 45; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.8,
+                vy: (Math.random() - 0.5) * 0.8,
+                radius: Math.random() * 2 + 1
+            });
+        }
+
+        function animateNetwork() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            particles.forEach((p, index) => {
+                p.x += p.vx;
+                p.y += p.vy;
+
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#58a6ff';
+                ctx.fill();
+
+                // Connect nearby nodes like synapses
+                for (let j = index + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (dist < 140) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = `rgba(88, 166, 255, ${1 - dist / 140})`;
+                        ctx.lineWidth = 0.6;
+                        ctx.stroke();
+                    }
+                }
+            });
+            requestAnimationFrame(animateNetwork);
+        }
+        animateNetwork();
+    </script>
+
+</body>
+</html>
