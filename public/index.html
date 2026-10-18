@@ -3,28 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BrainGym - Advanced Settings & Analytics</title>
+    <title>BrainGym - Live Cognitive Dashboard</title>
     <style>
         * { box-sizing: border-box; }
         body { 
-            background-color: #0d1117; color: #c9d1d9; 
+            background-color: #0d1117; 
+            color: #c9d1d9; 
             font-family: monospace, sans-serif; 
-            display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; 
-            min-height: 100vh; margin: 0; padding: 20px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px;
+            overflow-x: hidden;
         }
-        h1 { color: #58a6ff; text-shadow: 0 0 10px rgba(88, 166, 255, 0.4); margin-bottom: 20px; }
+
+        /* Interactive Live Background Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        /* Animated Header */
+        .app-header {
+            text-align: center;
+            margin-bottom: 20px;
+            animation: floatHeader 4s ease-in-out infinite;
+        }
+        @keyframes floatHeader {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        h1 { 
+            color: #58a6ff; 
+            text-shadow: 0 0 15px rgba(88, 166, 255, 0.5); 
+            margin: 0; 
+            font-size: 2.6rem;
+            letter-spacing: 2px;
+        }
+        .live-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #3fb950;
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.4);
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #3fb950;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #3fb950;
+            animation: pulseDot 1.5s infinite;
+        }
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+        }
+
+        /* Containers */
         .container { 
-            background: #161b22; padding: 2rem; border-radius: 10px; 
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); text-align: center; 
-            width: 100%; max-width: 500px;
+            background: rgba(22, 27, 34, 0.9); 
+            backdrop-filter: blur(10px);
+            padding: 2rem; 
+            border-radius: 14px; 
+            border: 1px solid #30363d;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
+            text-align: center; 
+            width: 100%; 
+            max-width: 520px;
+            transition: max-width 0.3s ease;
         }
+        .container.wide-dashboard {
+            max-width: 900px;
+        }
+
+        /* Dynamic Image Button Grid for Dashboard */
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px;
+            margin: 20px 0;
+        }
+        .image-btn-card {
+            background: #21262d;
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            padding: 0;
+            cursor: pointer;
+            overflow: hidden;
+            text-align: left;
+            font-family: monospace;
+            color: #c9d1d9;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .image-btn-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            border-color: #58a6ff;
+            box-shadow: 0 8px 25px rgba(88, 166, 255, 0.3);
+        }
+        .card-img-box {
+            width: 100%;
+            height: 125px;
+            overflow: hidden;
+            position: relative;
+            border-bottom: 1px solid #30363d;
+        }
+        .card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease, filter 0.3s ease;
+            filter: brightness(0.85);
+        }
+        .image-btn-card:hover .card-img-box img {
+            transform: scale(1.12);
+            filter: brightness(1.1);
+        }
+        .module-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(13, 17, 23, 0.85);
+            color: #3fb950;
+            border: 1px solid #3fb950;
+            padding: 3px 9px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .card-body {
+            padding: 14px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card-body h3 {
+            margin: 0 0 6px 0;
+            color: #f0f6fc;
+            font-size: 1.1rem;
+        }
+        .card-body p {
+            margin: 0 0 12px 0;
+            font-size: 0.82rem;
+            color: #8b949e;
+            line-height: 1.4;
+        }
+        .play-bar {
+            background: #238636;
+            color: white;
+            text-align: center;
+            padding: 7px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+        .image-btn-card:hover .play-bar {
+            background: #2ea043;
+            box-shadow: 0 0 12px rgba(46, 160, 67, 0.6);
+        }
+
+        /* Standard Buttons */
         .btn { 
             background: #238636; color: white; border: none; padding: 10px 15px; 
             cursor: pointer; border-radius: 6px; font-weight: bold; font-family: monospace;
-            font-size: 1rem; margin: 5px; transition: 0.2s background; width: 80%; max-width: 300px;
+            font-size: 1rem; margin: 5px; transition: 0.2s all; width: 80%; max-width: 300px;
         }
-        .btn:hover { background: #2ea043; }
+        .btn:hover { background: #2ea043; transform: translateY(-1px); }
+        .btn-skip { 
+            background: #9e6a03; 
+            color: white; 
+            width: auto; 
+            min-width: 140px;
+            padding: 10px 18px;
+        }
+        .btn-skip:hover { background: #d29922; }
         .btn-secondary { background: #30363d; margin-top: 15px; }
         .btn-secondary:hover { background: #484f58; }
         .btn-danger { background: #da3633; }
@@ -36,27 +207,31 @@
             width: 80%; max-width: 250px; margin-bottom: 15px;
         }
         
-        .screen { display: none; }
+        .screen { display: none; animation: fadeIn 0.3s ease-out; }
         .active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .feedback { min-height: 24px; font-weight: bold; margin-top: 10px; }
         .correct { color: #3fb950; }
         .wrong { color: #f85149; }
+        .skipped-text { color: #d29922; }
 
         .stimulus-box {
-            font-size: 2.5rem; font-weight: bold; min-height: 80px; display: flex;
+            font-size: 2.5rem; font-weight: bold; min-height: 85px; display: flex;
             align-items: center; justify-content: center; margin: 15px 0;
             background: #0d1117; border-radius: 8px; border: 2px solid #30363d;
             transition: border-color 0.1s; letter-spacing: 2px;
         }
 
-        /* Animation for N-Back letter change */
         @keyframes pop {
             0% { transform: scale(0.8); opacity: 0.5; }
             100% { transform: scale(1); opacity: 1; }
         }
         .pop-anim { animation: pop 0.2s ease-out; }
 
-        /* Reaction Time Box */
         .reaction-box {
             height: 150px; cursor: pointer; color: white; font-size: 1.5rem;
             user-select: none;
@@ -69,7 +244,6 @@
         .results-board span { color: #58a6ff; font-weight: bold; }
         .benchmark-text { margin-top: 10px; padding-top: 10px; border-top: 1px solid #30363d; font-size: 0.85rem; color: #8b949e; font-style: italic; }
 
-        /* Score Table */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem;}
         th, td { border: 1px solid #30363d; padding: 8px; text-align: left; }
         th { background: #0d1117; color: #58a6ff; }
@@ -78,18 +252,99 @@
 </head>
 <body>
 
-    <h1>BrainGym</h1>
+    <!-- LIVE INTERACTIVE PARTICLE CANVAS -->
+    <canvas id="bg-canvas"></canvas>
 
-    <!-- 1. MAIN MENU -->
-    <div id="menu-screen" class="container screen active">
-        <h2>Training Modules</h2>
-        <button class="btn" onclick="startReactionGame()">1. Reaction Time Test</button><br>
-        <button class="btn" onclick="openSetup('stroop')">2. Stroop Test</button><br>
-        <button class="btn" onclick="openSetup('memory')">3. Memory Match Test</button><br>
-        <button class="btn" onclick="openSetup('math')">4. Mental Math Sprint</button><br>
-        <button class="btn" onclick="openSetup('nback')">5. N-Back Test</button><br>
+    <div class="app-header">
+        <h1>⚡ BrainGym</h1>
+        <div class="live-status">
+            <span class="pulse-dot"></span> Neuro-Analytics Engine Active
+        </div>
+    </div>
+
+    <!-- 1. DYNAMIC IMAGE DASHBOARD -->
+    <div id="menu-screen" class="container wide-dashboard screen active">
+        <h2>Select a Cognitive Training Module</h2>
+        
+        <div class="module-grid">
+            <!-- Module 1: Reaction Time -->
+            <button class="image-btn-card" onclick="startReactionGame()">
+                <div class="card-img-box">
+                    <img src="https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80" alt="Reaction Time">
+                    <span class="module-badge">Reflexes</span>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <h3>1. Reaction Time Test</h3>
+                        <p>Respond to instantaneous visual color shifts in milliseconds.</p>
+                    </div>
+                    <div class="play-bar">Launch Module →</div>
+                </div>
+            </button>
+
+            <!-- Module 2: Stroop Test -->
+            <button class="image-btn-card" onclick="openSetup('stroop')">
+                <div class="card-img-box">
+                    <img src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=600&q=80" alt="Stroop Test">
+                    <span class="module-badge">Focus</span>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <h3>2. Stroop Test</h3>
+                        <p>Overcome cognitive interference by matching font colors under pressure.</p>
+                    </div>
+                    <div class="play-bar">Configure & Play →</div>
+                </div>
+            </button>
+
+            <!-- Module 3: Memory Match -->
+            <button class="image-btn-card" onclick="openSetup('memory')">
+                <div class="card-img-box">
+                    <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80" alt="Memory Match">
+                    <span class="module-badge">Recall</span>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <h3>3. Memory Match Test</h3>
+                        <p>Memorize and reconstruct progressively longer digit sequences.</p>
+                    </div>
+                    <div class="play-bar">Configure & Play →</div>
+                </div>
+            </button>
+
+            <!-- Module 4: Mental Math -->
+            <button class="image-btn-card" onclick="openSetup('math')">
+                <div class="card-img-box">
+                    <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=600&q=80" alt="Mental Math Sprint">
+                    <span class="module-badge">Speed</span>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <h3>4. Mental Math Sprint</h3>
+                        <p>High-speed arithmetic calculations against a custom countdown.</p>
+                    </div>
+                    <div class="play-bar">Configure & Play →</div>
+                </div>
+            </button>
+
+            <!-- Module 5: N-Back Test -->
+            <button class="image-btn-card" onclick="openSetup('nback')">
+                <div class="card-img-box">
+                    <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80" alt="N-Back Test">
+                    <span class="module-badge">Memory</span>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <h3>5. N-Back Test</h3>
+                        <p>Track continuous letter streams and identify matches from N steps back.</p>
+                    </div>
+                    <div class="play-bar">Configure & Play →</div>
+                </div>
+            </button>
+        </div>
+
         <hr style="border-color:#30363d; margin: 20px 0;">
-        <button class="btn btn-secondary" onclick="viewScores()">View Score History</button>
+        <button class="btn btn-secondary" onclick="viewScores()">📊 View Score History</button>
     </div>
 
     <!-- 2. UNIFIED SETUP SCREEN -->
@@ -129,8 +384,9 @@
         <h2>Mental Math Sprint</h2>
         <div class="stimulus-box" id="math-problem">Ready?</div>
         <div id="math-game-area">
-            <input type="number" id="math-input" autocomplete="off">
-            <button class="btn" style="width:120px;" onclick="checkMathAnswer()">Submit</button>
+            <input type="number" id="math-input" autocomplete="off"><br>
+            <button class="btn" style="width:130px;" onclick="checkMathAnswer()">Submit</button>
+            <button class="btn btn-skip" onclick="skipMathProblem()">⏭ Skip Round</button>
         </div>
         <p class="feedback" id="math-feedback"></p>
         <h3 id="math-score">Score: 0</h3>
@@ -143,7 +399,10 @@
         <h2>Stroop Test</h2>
         <p>Select the <strong>FONT COLOR</strong></p>
         <div class="stimulus-box" id="stroop-display">START</div>
-        <div id="stroop-buttons" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px;"></div>
+        <div id="stroop-game-area">
+            <div id="stroop-buttons" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px; margin-bottom: 10px;"></div>
+            <button class="btn btn-skip" onclick="skipStroopTrial()">⏭ Skip Round</button>
+        </div>
         <p class="feedback" id="stroop-feedback"></p>
         <h3 id="stroop-score">Score: 0</h3>
         <div class="results-board" id="stroop-results"></div>
@@ -156,8 +415,11 @@
         <p>Memorize the number sequence!</p>
         <div class="stimulus-box" id="memory-display">Ready?</div>
         <div id="memory-input-area" style="display:none;">
-            <input type="number" id="memory-input" autocomplete="off" placeholder="Type here...">
-            <button class="btn" style="width:120px;" onclick="checkMemoryAnswer()">Submit</button>
+            <input type="number" id="memory-input" autocomplete="off" placeholder="Type here..."><br>
+            <button class="btn" style="width:130px;" onclick="checkMemoryAnswer()">Submit</button>
+        </div>
+        <div id="memory-controls">
+            <button class="btn btn-skip" onclick="skipMemoryRound()">⏭ Skip Round</button>
         </div>
         <p class="feedback" id="memory-feedback"></p>
         <h3 id="memory-score">Score: 0</h3>
@@ -170,7 +432,8 @@
         <h2 id="nback-header">N-Back Test</h2>
         <div class="stimulus-box" id="nback-display">-</div>
         <div id="nback-game-area">
-            <button class="btn" onclick="registerNBackMatch()">Match!</button>
+            <button class="btn" style="width:140px;" onclick="registerNBackMatch()">Match!</button>
+            <button class="btn btn-skip" onclick="skipNBackStep()">⏭ Skip Round</button>
         </div>
         <p class="feedback" id="nback-feedback"></p>
         <h3 id="nback-score">Score: 0</h3>
@@ -185,19 +448,89 @@
         <div id="reaction-box" class="stimulus-box reaction-box" onclick="handleReactionClick()">
             Click here to start
         </div>
+        <div id="reaction-controls">
+            <button class="btn btn-skip" onclick="skipReactionRound()">⏭ Skip Round</button>
+        </div>
+        <p class="feedback" id="reaction-feedback"></p>
         <h3 id="reaction-score">Attempt: 0 / 5</h3>
         <div class="results-board" id="reaction-results"></div>
         <button class="btn btn-secondary" onclick="returnToMenu()">Back to Menu</button>
     </div>
 
     <script>
+        // ================= LIVE BACKGROUND CANVAS =================
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: null, y: null };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+        resizeCanvas();
+
+        for (let i = 0; i < 45; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.9,
+                vy: (Math.random() - 0.5) * 0.9,
+                radius: Math.random() * 2 + 1
+            });
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, i) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#58a6ff';
+                ctx.fill();
+
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (dist < 130) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = `rgba(88, 166, 255, ${1 - dist / 130})`;
+                        ctx.lineWidth = 0.6;
+                        ctx.stroke();
+                    }
+                }
+
+                if (mouse.x && mouse.y) {
+                    const mDist = Math.hypot(p.x - mouse.x, p.y - mouse.y);
+                    if (mDist < 150) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        ctx.strokeStyle = `rgba(63, 185, 80, ${1 - mDist / 150})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.stroke();
+                    }
+                }
+            });
+            requestAnimationFrame(animateCanvas);
+        }
+        animateCanvas();
+
         // ================= GLOBAL STATE & ROUTING =================
         let currentGameMode = '';
         const bestScores = { math: 0, stroop: 0, memory: 0, nback: 0, reaction: 9999 };
 
         function updateBestScore(game, score, lowerIsBetter = false) {
             if (lowerIsBetter) {
-                if (score < bestScores[game] || bestScores[game] === 9999) bestScores[game] = score;
+                if (score > 0 && (score < bestScores[game] || bestScores[game] === 9999)) bestScores[game] = score;
             } else {
                 if (score > bestScores[game]) bestScores[game] = score;
             }
@@ -289,10 +622,11 @@
         // ================= 1. MENTAL MATH SPRINT =================
         let mathStats = {}, mathAnswer = 0, mathTrials = 0, mathLimit = 0, mathLvl = 'easy', mathStartTime, mathTimeout;
         function startMathGame(level, limit) {
-            mathStats = { score: 0, correct: 0, incorrect: 0, timeouts: 0, totalTime: 0 };
+            mathStats = { score: 0, correct: 0, incorrect: 0, timeouts: 0, skipped: 0, totalTime: 0 };
             mathTrials = 0; mathLimit = limit; mathLvl = level;
             document.getElementById('math-results').style.display = 'none';
             document.getElementById('math-game-area').style.display = 'block';
+            document.getElementById('math-feedback').innerText = '';
             document.getElementById('math-score').innerText = `Score: 0`;
             showScreen('math-screen');
             nextMathProblem();
@@ -317,9 +651,25 @@
             if (isNaN(val)) return;
             clearTimeout(mathTimeout);
             mathStats.totalTime += (performance.now() - mathStartTime);
-            if (val === mathAnswer) { mathStats.score += (mathLvl==='hard'?15:10); mathStats.correct++; } 
-            else { mathStats.score -= 3; mathStats.incorrect++; }
+            const fb = document.getElementById('math-feedback');
+            if (val === mathAnswer) { 
+                mathStats.score += (mathLvl==='hard'?15:10); mathStats.correct++; 
+                fb.innerText = "Correct!"; fb.className = "feedback correct";
+            } else { 
+                mathStats.score -= 3; mathStats.incorrect++; 
+                fb.innerText = `Wrong! Was ${mathAnswer}`; fb.className = "feedback wrong";
+            }
             mathTrials++; document.getElementById('math-score').innerText = `Score: ${mathStats.score}`;
+            nextMathProblem();
+        }
+        function skipMathProblem() {
+            if (mathTrials >= 10) return;
+            clearTimeout(mathTimeout);
+            mathStats.skipped++;
+            mathTrials++;
+            const fb = document.getElementById('math-feedback');
+            fb.innerText = "Round Skipped!";
+            fb.className = "feedback skipped-text";
             nextMathProblem();
         }
         document.getElementById('math-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkMathAnswer(); });
@@ -330,7 +680,8 @@
             
             const best = updateBestScore('math', mathStats.score);
             const totalAnswered = mathStats.correct + mathStats.incorrect;
-            const acc = totalAnswered > 0 ? ((mathStats.correct / 10) * 100).toFixed(1) : 0;
+            const activeTrials = Math.max(1, 10 - mathStats.skipped);
+            const acc = totalAnswered > 0 ? ((mathStats.correct / activeTrials) * 100).toFixed(1) : 0;
             const avgTime = totalAnswered > 0 ? (mathStats.totalTime / totalAnswered / 1000).toFixed(2) : 0;
 
             const res = document.getElementById('math-results');
@@ -338,7 +689,7 @@
                 Final Score: <span>${mathStats.score}</span><br>
                 Best Score: <span>${best}</span><br><br>
                 Correct: <span>${mathStats.correct}</span> | Incorrect: <span>${mathStats.incorrect}</span><br>
-                Timeouts: <span>${mathStats.timeouts}</span><br>
+                Timeouts: <span>${mathStats.timeouts}</span> | Skipped: <span>${mathStats.skipped}</span><br>
                 Accuracy: <span>${acc}%</span><br>
                 Avg Response Time: <span>${avgTime}s</span>
                 <div class="benchmark-text">Avg Human Benchmark: ~80% Accuracy, ~3.0s per question</div>
@@ -352,7 +703,7 @@
         let stroopStats = {}, stroopTrials = 0, correctColor = '', stroopStartTime, stroopTimeout, stroopLimit = 0, activeColors = [];
 
         function startStroopGame(level, limit) {
-            stroopStats = { score: 0, correct: 0, incorrect: 0, timeouts: 0, totalTime: 0 };
+            stroopStats = { score: 0, correct: 0, incorrect: 0, timeouts: 0, skipped: 0, totalTime: 0 };
             stroopTrials = 0; stroopLimit = limit;
             let colorCount = level === 'easy' ? 3 : (level === 'medium' ? 4 : 6);
             activeColors = allColors.slice(0, colorCount);
@@ -362,7 +713,8 @@
             activeColors.forEach(c => { btnContainer.innerHTML += `<button class="btn" style="width: 80px;" onclick="checkStroopAnswer('${c.n}')">${c.n}</button>`; });
 
             document.getElementById('stroop-results').style.display = 'none';
-            document.getElementById('stroop-buttons').style.display = 'flex';
+            document.getElementById('stroop-game-area').style.display = 'block';
+            document.getElementById('stroop-feedback').innerText = '';
             document.getElementById('stroop-score').innerText = 'Score: 0';
             showScreen('stroop-screen');
             nextStroopTrial();
@@ -389,28 +741,43 @@
 
         function checkStroopAnswer(selectedColor) {
             clearTimeout(stroopTimeout);
-            stroopStats.totalTime += (performance.now() - stroopStartTime); // Track response time
+            stroopStats.totalTime += (performance.now() - stroopStartTime);
             
             const display = document.getElementById('stroop-display');
+            const fb = document.getElementById('stroop-feedback');
             if (selectedColor === correctColor) { 
                 stroopStats.score += 10; stroopStats.correct++; 
                 display.style.borderColor = "#3fb950"; 
+                fb.innerText = "Correct! (+10)"; fb.className = "feedback correct";
             } else { 
                 stroopStats.score -= 5; stroopStats.incorrect++; 
                 display.style.borderColor = "#f85149"; 
+                fb.innerText = `Wrong! Was ${correctColor}`; fb.className = "feedback wrong";
             }
             stroopTrials++; 
             document.getElementById('stroop-score').innerText = `Score: ${stroopStats.score}`;
             setTimeout(nextStroopTrial, 150);
         }
 
+        function skipStroopTrial() {
+            if (stroopTrials >= 10) return;
+            clearTimeout(stroopTimeout);
+            stroopStats.skipped++;
+            stroopTrials++;
+            const fb = document.getElementById('stroop-feedback');
+            fb.innerText = "Round Skipped!";
+            fb.className = "feedback skipped-text";
+            nextStroopTrial();
+        }
+
         function endStroopGame() {
             document.getElementById('stroop-display').innerText = "Complete!";
-            document.getElementById('stroop-buttons').style.display = 'none';
+            document.getElementById('stroop-game-area').style.display = 'none';
             
             const best = updateBestScore('stroop', stroopStats.score);
             const totalAnswered = stroopStats.correct + stroopStats.incorrect;
-            const acc = totalAnswered > 0 ? ((stroopStats.correct / 10) * 100).toFixed(1) : 0;
+            const activeTrials = Math.max(1, 10 - stroopStats.skipped);
+            const acc = totalAnswered > 0 ? ((stroopStats.correct / activeTrials) * 100).toFixed(1) : 0;
             const avgTime = totalAnswered > 0 ? (stroopStats.totalTime / totalAnswered / 1000).toFixed(2) : 0;
 
             const res = document.getElementById('stroop-results');
@@ -418,7 +785,7 @@
                 Final Score: <span>${stroopStats.score}</span><br>
                 Best Score: <span>${best}</span><br><br>
                 Correct: <span>${stroopStats.correct}</span> | Incorrect: <span>${stroopStats.incorrect}</span><br>
-                Timeouts: <span>${stroopStats.timeouts}</span><br>
+                Timeouts: <span>${stroopStats.timeouts}</span> | Skipped: <span>${stroopStats.skipped}</span><br>
                 Accuracy: <span>${acc}%</span><br>
                 Avg Response Time: <span>${avgTime}s</span>
                 <div class="benchmark-text">Avg Human Benchmark: ~95% Accuracy, 0.8s - 1.0s response time</div>
@@ -434,9 +801,10 @@
             memLvl = level;
             memShowTime = limit > 0 ? limit : 3000;
             memStartDigits = level === 'easy' ? 3 : (level === 'medium' ? 4 : 5);
-            memStats = { score: 0, currentDigits: memStartDigits, highestDigits: 0 };
+            memStats = { score: 0, currentDigits: memStartDigits, highestDigits: 0, skipped: 0 };
             
             document.getElementById('memory-results').style.display = 'none';
+            document.getElementById('memory-controls').style.display = 'block';
             document.getElementById('memory-score').innerText = `Score: 0`;
             document.getElementById('memory-feedback').innerText = '';
             showScreen('memory-screen');
@@ -444,6 +812,7 @@
         }
 
         function nextMemoryRound() {
+            clearTimeout(memTimeout);
             document.getElementById('memory-input-area').style.display = 'none';
             document.getElementById('memory-input').value = '';
             const display = document.getElementById('memory-display');
@@ -485,20 +854,35 @@
                 endMemoryGame();
             }
         }
+
+        function skipMemoryRound() {
+            clearTimeout(memTimeout);
+            memStats.skipped++;
+            const fb = document.getElementById('memory-feedback');
+            fb.innerText = "Sequence Skipped! Loading new sequence...";
+            fb.className = "feedback skipped-text";
+            setTimeout(() => {
+                fb.innerText = "";
+                nextMemoryRound();
+            }, 600);
+        }
+
         document.getElementById('memory-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkMemoryAnswer(); });
 
         function endMemoryGame() {
+            clearTimeout(memTimeout);
             document.getElementById('memory-input-area').style.display = 'none';
+            document.getElementById('memory-controls').style.display = 'none';
             document.getElementById('memory-display').innerText = "Game Over!";
             
             const best = updateBestScore('memory', memStats.score);
-            const roundsCompleted = Math.max(0, memStats.highestDigits - memStartDigits + 1);
+            const roundsCompleted = memStats.highestDigits > 0 ? (memStats.highestDigits - memStartDigits + 1) : 0;
 
             const res = document.getElementById('memory-results');
             res.innerHTML = `
                 Final Score: <span>${memStats.score}</span><br>
                 Best Score: <span>${best}</span><br><br>
-                Rounds Completed: <span>${roundsCompleted}</span><br>
+                Rounds Completed: <span>${roundsCompleted}</span> | Skipped: <span>${memStats.skipped}</span><br>
                 Longest Sequence (Digits): <span>${memStats.highestDigits || 0}</span>
                 <div class="benchmark-text">Avg Human Benchmark: Can recall a sequence of ~7 digits</div>
             `;
@@ -508,28 +892,33 @@
 
         // ================= 4. N-BACK TEST =================
         const letters = ['A', 'B', 'C', 'D'];
-        let nBackSeq = [], nBackStats = {}, nBackStep = 0, nBackInterval = null, nBackN = 2, currentIsMatch = false, userClaimed = false;
+        let nBackSeq = [], nBackStats = {}, nBackStep = 0, nBackInterval = null, nBackN = 2, nBackLimit = 1500;
+        let currentIsMatch = false, userClaimed = false, stepSkipped = false;
 
         function startNBackGame(level, limit) {
-            nBackSeq = []; nBackStep = 0; currentIsMatch = false; userClaimed = false;
+            nBackSeq = []; nBackStep = 0; currentIsMatch = false; userClaimed = false; stepSkipped = false;
+            nBackLimit = limit;
             nBackN = level === 'easy' ? 1 : (level === 'medium' ? 2 : 3);
             document.getElementById('nback-header').innerText = `N-Back Test (${nBackN}-Back)`;
-            nBackStats = { score: 0, hits: 0, misses: 0, falseAlarms: 0, correctRejections: 0, totalSteps: 12 };
+            nBackStats = { score: 0, hits: 0, misses: 0, falseAlarms: 0, correctRejections: 0, skipped: 0, totalSteps: 12 };
             
             document.getElementById('nback-results').style.display = 'none';
             document.getElementById('nback-game-area').style.display = 'block';
+            document.getElementById('nback-feedback').innerText = '';
             document.getElementById('nback-score').innerText = 'Score: 0';
             showScreen('nback-screen');
-            nBackInterval = setInterval(runNBackStep, limit);
+            nBackInterval = setInterval(runNBackStep, nBackLimit);
         }
 
         function runNBackStep() {
-            if (nBackStep > 0) {
+            if (nBackStep > 0 && !stepSkipped) {
                 if (currentIsMatch && !userClaimed) nBackStats.misses++;
                 if (!currentIsMatch && !userClaimed) nBackStats.correctRejections++;
             }
             if (nBackStep >= nBackStats.totalSteps) return endNBackGame();
+            
             userClaimed = false;
+            stepSkipped = false;
             let nextLetter;
             if (nBackStep >= nBackN && Math.random() < 0.35) {
                 nextLetter = nBackSeq[nBackStep - nBackN];
@@ -550,9 +939,29 @@
         function registerNBackMatch() {
             if (userClaimed || nBackStep <= nBackN) return;
             userClaimed = true;
-            if (currentIsMatch) { nBackStats.score += 15; nBackStats.hits++; } 
-            else { nBackStats.score -= 5; nBackStats.falseAlarms++; }
+            const fb = document.getElementById('nback-feedback');
+            if (currentIsMatch) { 
+                nBackStats.score += 15; nBackStats.hits++; 
+                fb.innerText = "Match Hit! (+15)"; fb.className = "feedback correct";
+            } else { 
+                nBackStats.score -= 5; nBackStats.falseAlarms++; 
+                fb.innerText = "False Alarm! (-5)"; fb.className = "feedback wrong";
+            }
             document.getElementById('nback-score').innerText = `Score: ${nBackStats.score}`;
+        }
+
+        function skipNBackStep() {
+            if (nBackStep >= nBackStats.totalSteps) return;
+            clearInterval(nBackInterval);
+            stepSkipped = true;
+            nBackStats.skipped++;
+            const fb = document.getElementById('nback-feedback');
+            fb.innerText = "Step Skipped!";
+            fb.className = "feedback skipped-text";
+            runNBackStep();
+            if (nBackStep < nBackStats.totalSteps) {
+                nBackInterval = setInterval(runNBackStep, nBackLimit);
+            }
         }
 
         function endNBackGame() {
@@ -570,6 +979,7 @@
                 Best Score: <span>${best}</span><br><br>
                 Hits: <span>${nBackStats.hits}</span> | Misses: <span>${nBackStats.misses}</span><br>
                 False Alarms: <span>${nBackStats.falseAlarms}</span> | Correct Rejections: <span>${nBackStats.correctRejections}</span><br>
+                Skipped Steps: <span>${nBackStats.skipped}</span><br>
                 Accuracy: <span>${acc}%</span>
                 <div class="benchmark-text">Avg Human Benchmark: Capable of 2-Back with ~80% Accuracy</div>
             `;
@@ -579,11 +989,13 @@
 
         // ================= 5. REACTION TIME TEST =================
         let rxState = 'start'; 
-        let rxTimeout = null, rxStartTime = 0, rxAttempts = 0, rxTotalTime = 0, rxFastest = 9999, rxSlowest = 0;
+        let rxTimeout = null, rxStartTime = 0, rxAttempts = 0, rxCompleted = 0, rxSkipped = 0, rxTotalTime = 0, rxFastest = 9999, rxSlowest = 0;
 
         function startReactionGame() {
-            rxAttempts = 0; rxTotalTime = 0; rxFastest = 9999; rxSlowest = 0;
+            rxAttempts = 0; rxCompleted = 0; rxSkipped = 0; rxTotalTime = 0; rxFastest = 9999; rxSlowest = 0;
             document.getElementById('reaction-results').style.display = 'none';
+            document.getElementById('reaction-controls').style.display = 'block';
+            document.getElementById('reaction-feedback').innerText = '';
             document.getElementById('reaction-score').innerText = `Attempt: 0 / 5`;
             showScreen('reaction-screen');
             setReactionState('start');
@@ -593,15 +1005,15 @@
             rxState = state;
             const box = document.getElementById('reaction-box');
             if (state === 'start') {
-                box.style.background = '#1f6feb'; // Blue
+                box.style.background = '#1f6feb';
                 box.innerText = "Click to Start";
             } else if (state === 'waiting') {
-                box.style.background = '#da3633'; // Red
+                box.style.background = '#da3633';
                 box.innerText = "Wait for Green...";
                 const randomDelay = Math.floor(Math.random() * 3000) + 1500; 
                 rxTimeout = setTimeout(() => setReactionState('ready'), randomDelay);
             } else if (state === 'ready') {
-                box.style.background = '#3fb950'; // Green
+                box.style.background = '#3fb950';
                 box.innerText = "CLICK NOW!";
                 rxStartTime = performance.now();
             }
@@ -619,8 +1031,8 @@
                 const reactTime = performance.now() - rxStartTime;
                 rxTotalTime += reactTime;
                 rxAttempts++;
+                rxCompleted++;
                 
-                // Track fastest/slowest within this session
                 if (reactTime < rxFastest) rxFastest = reactTime;
                 if (reactTime > rxSlowest) rxSlowest = reactTime;
 
@@ -633,8 +1045,26 @@
             }
         }
 
+        function skipReactionRound() {
+            if (rxAttempts >= 5) return;
+            clearTimeout(rxTimeout);
+            rxAttempts++;
+            rxSkipped++;
+            document.getElementById('reaction-score').innerText = `Attempt: ${rxAttempts} / 5`;
+            const fb = document.getElementById('reaction-feedback');
+            fb.innerText = "Attempt Skipped!";
+            fb.className = "feedback skipped-text";
+            if (rxAttempts >= 5) {
+                endReactionGame();
+            } else {
+                setReactionState('start');
+            }
+        }
+
         function endReactionGame() {
-            const avgTime = Math.round(rxTotalTime / 5);
+            clearTimeout(rxTimeout);
+            document.getElementById('reaction-controls').style.display = 'none';
+            const avgTime = rxCompleted > 0 ? Math.round(rxTotalTime / rxCompleted) : 0;
             const best = updateBestScore('reaction', avgTime, true); 
             const box = document.getElementById('reaction-box');
             box.style.background = '#30363d';
@@ -645,12 +1075,13 @@
             res.innerHTML = `
                 Average Reaction: <span>${avgTime} ms</span><br>
                 Personal Best (All-time): <span>${best === 9999 ? avgTime : best} ms</span><br><br>
-                Fastest this session: <span>${Math.round(rxFastest)} ms</span><br>
-                Slowest this session: <span>${Math.round(rxSlowest)} ms</span>
+                Fastest this session: <span>${rxCompleted > 0 ? Math.round(rxFastest) : 0} ms</span><br>
+                Slowest this session: <span>${rxCompleted > 0 ? Math.round(rxSlowest) : 0} ms</span><br>
+                Skipped Attempts: <span>${rxSkipped}</span>
                 <div class="benchmark-text">Avg Human Benchmark: ~250 ms to a visual stimulus</div>
             `;
             res.style.display = 'block';
-            submitScore(`Reaction Time`, avgTime); 
+            if (rxCompleted > 0) submitScore(`Reaction Time`, avgTime); 
         }
     </script>
 </body>
