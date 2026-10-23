@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainGym - Grid Striker</title>
+    <style>
+        /* Animated Header */
+        .app-header { text-align: center; margin-bottom: 20px; animation: floatHeader 4s ease-in-out infinite; }
+        @keyframes floatHeader { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
+        h1 { color: #58a6ff; text-shadow: 0 0 15px rgba(88, 166, 255, 0.5); margin: 0; font-size: 2.6rem; letter-spacing: 2px; }
+        
+        .live-status { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #3fb950; background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.4); padding: 4px 12px; border-radius: 20px; margin-top: 8px; }
+        
+        .pulse-dot { width: 8px; height: 8px; background-color: #3fb950; border-radius: 50%; box-shadow: 0 0 8px #3fb950; animation: pulseDot 1.5s infinite; }
+        @keyframes pulseDot { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; } }
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; opacity: 0.4; }
+        * { box-sizing: border-box; }
+        body { background-color: #0d1117; color: #c9d1d9; font-family: monospace, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        
+        .container { background: rgba(22, 27, 34, 0.9); padding: 2rem; border-radius: 14px; border: 1px solid #30363d; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); text-align: center; width: 100%; max-width: 520px; }
+        
+        h2 { color: #58a6ff; margin-top: 0; font-size: 2rem; }
+        .btn { background: #238636; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 6px; font-weight: bold; font-family: monospace; font-size: 1.1rem; margin: 5px; width: 80%; transition: 0.2s; }
+        .btn:hover { background: #2ea043; }
+        .btn-secondary { background: #30363d; }
+        .btn-secondary:hover { background: #484f58; }
+        select { background: #0d1117; color: #58a6ff; border: 1px solid #30363d; padding: 8px; font-size: 1.1rem; border-radius: 5px; font-family: monospace; width: 80%; margin-bottom: 15px; }
+
+        .mole-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 450px; margin: 20px auto; }
+        .mole-hole { background: #161b22; border: 2px solid #30363d; height: 110px; border-radius: 12px; position: relative; overflow: hidden; cursor: crosshair; }
+        .mole { width: 70%; height: 70%; border-radius: 50%; position: absolute; top: 100%; left: 15%; transition: top 0.15s ease-out; box-shadow: 0 0 20px rgba(0,0,0,0.5); pointer-events: none; }
+        .mole.active { top: 15%; pointer-events: auto; }
+        .mole.target { background: #58a6ff; box-shadow: 0 0 15px #58a6ff; }
+        .mole.bomb { background: #f85149; box-shadow: 0 0 15px #f85149; }
+
+        .screen { display: none; }
+        .active { display: block; }
+        .results-board { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 15px; margin-top: 15px; text-align: left; display: none; }
+        .results-board span { color: #58a6ff; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <!-- LIVE INTERACTIVE PARTICLE CANVAS -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- Animated BrainGym Header -->
+    <div class="app-header">
+        <h1>⚡ BrainGym</h1>
+        <div class="live-status">
+            <span class="pulse-dot"></span> Neuro-Analytics Engine Active
+        </div>
+    </div>
+
+    <!-- SETUP SCREEN -->
+    <div id="setup-screen" class="container screen active">
+        <h2>Grid Striker Setup</h2>
+        <p>Target Speed:</p>
+        <select id="game-level">
+            <option value="easy">PRO (Slow)</option>
+            <option value="medium">LEGEND (Fast)</option>
+            <option value="hard">THE GOAT (Extreme)</option>
+        </select>
+        <p>Round Duration:</p>
+        <select id="game-time">
+            <option value="30">30 Seconds</option>
+            <option value="60">60 Seconds</option>
+        </select>
+        <br><br>
+        <button class="btn" onclick="startMoleGame()">Start Module</button>
+        <button class="btn btn-secondary" onclick="window.location.href='/game'">Back to Menu</button>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="mole-screen" class="container screen">
+        <h2>Grid Striker</h2>
+        <div style="display: flex; justify-content: space-between; font-size: 1.2rem; margin-bottom: 10px;">
+            <span style="color: #58a6ff;">Score: <span id="mole-score-val">0</span></span>
+            <span style="color: #d29922;">Time: <span id="mole-time-val">30</span>s</span>
+        </div>
+        <div class="mole-grid" id="mole-grid-area"></div>
+        <div class="results-board" id="mole-results"></div>
+        <button id="back-btn" class="btn btn-secondary" style="display:none; margin-top: 15px; width: 100%;" onclick="window.location.href='/game'">Back to Menu</button>
+    </div>
+
+    <script>
+        // ================= LIVE BACKGROUND CANVAS =================
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: null, y: null };
+
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+        resizeCanvas();
+
+        for (let i = 0; i < 45; i++) {
+            particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, vx: (Math.random() - 0.5) * 0.9, vy: (Math.random() - 0.5) * 0.9, radius: Math.random() * 2 + 1 });
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = '#58a6ff'; ctx.fill();
+
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (dist < 130) {
+                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = `rgba(88, 166, 255, ${1 - dist / 130})`; ctx.lineWidth = 0.6; ctx.stroke();
+                    }
+                }
+
+                if (mouse.x && mouse.y) {
+                    const mDist = Math.hypot(p.x - mouse.x, p.y - mouse.y);
+                    if (mDist < 150) {
+                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mouse.x, mouse.y);
+                        ctx.strokeStyle = `rgba(63, 185, 80, ${1 - mDist / 150})`; ctx.lineWidth = 0.8; ctx.stroke();
+                    }
+                }
+            });
+            requestAnimationFrame(animateCanvas);
+        }
+        animateCanvas();
+        let moleScore = 0, moleTime = 30, moleInterval, moleTimerInt, moleActiveLimit = 1000;
+        
+        function startMoleGame() {
+            const level = document.getElementById('game-level').value;
+            moleTime = parseInt(document.getElementById('game-time').value);
+            moleScore = 0;
+            moleActiveLimit = level === 'easy' ? 1200 : (level === 'medium' ? 850 : 550);
+            
+            document.getElementById('setup-screen').classList.remove('active');
+            document.getElementById('mole-screen').classList.add('active');
+            
+            document.getElementById('mole-score-val').innerText = moleScore;
+            document.getElementById('mole-time-val').innerText = moleTime;
+            
+            const grid = document.getElementById('mole-grid-area');
+            grid.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                grid.innerHTML += `<div class="mole-hole"><div class="mole" id="mole-${i}" onclick="whackMole(${i}, event)"></div></div>`;
+            }
+            
+            moleTimerInt = setInterval(() => {
+                moleTime--; document.getElementById('mole-time-val').innerText = moleTime;
+                if (moleTime <= 0) endMoleGame();
+            }, 1000);
+            runMoleSpawner();
+        }
+
+        function runMoleSpawner() {
+            moleInterval = setInterval(() => {
+                const randomHole = Math.floor(Math.random() * 9);
+                const mole = document.getElementById(`mole-${randomHole}`);
+                if (mole.classList.contains('active')) return;
+
+                const isBomb = Math.random() < 0.25; 
+                mole.className = `mole active ${isBomb ? 'bomb' : 'target'}`;
+                
+                setTimeout(() => { mole.className = 'mole'; }, moleActiveLimit);
+            }, moleActiveLimit + 200);
+        }
+
+        function whackMole(index, e) {
+            const mole = document.getElementById(`mole-${index}`);
+            if (!mole.classList.contains('active')) return;
+            
+            if (mole.classList.contains('bomb')) {
+                moleScore = Math.max(0, moleScore - 15);
+                e.target.parentElement.style.borderColor = '#f85149';
+            } else {
+                moleScore += 10;
+                e.target.parentElement.style.borderColor = '#3fb950';
+            }
+            document.getElementById('mole-score-val').innerText = moleScore;
+            mole.className = 'mole'; 
+            setTimeout(() => { e.target.parentElement.style.borderColor = '#30363d'; }, 200);
+        }
+
+        async function endMoleGame() {
+            clearInterval(moleInterval); clearInterval(moleTimerInt);
+            document.getElementById('mole-grid-area').innerHTML = '';
+            
+            const res = document.getElementById('mole-results');
+            res.innerHTML = `Final Score: <span>${moleScore}</span><br><br>Target Acquisition speed tested successfully.`;
+            res.style.display = 'block';
+            document.getElementById('back-btn').style.display = 'block';
+
+            // Save Score Securely
+            const token = localStorage.getItem('braingym_token');
+            if (token) {
+                try {
+                    await fetch('/api/scores', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ game: 'Grid Striker', score: moleScore })
+                    });
+                } catch (err) { console.error(err); }
+            }
+        }
+    </script>
+</body>
+</html>

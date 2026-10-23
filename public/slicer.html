@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainGym - Neural Slicer</title>
+    <style>
+        /* Animated Header */
+        .app-header { text-align: center; margin-bottom: 20px; animation: floatHeader 4s ease-in-out infinite; }
+        @keyframes floatHeader { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
+        h1 { color: #58a6ff; text-shadow: 0 0 15px rgba(88, 166, 255, 0.5); margin: 0; font-size: 2.6rem; letter-spacing: 2px; }
+        
+        .live-status { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #3fb950; background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.4); padding: 4px 12px; border-radius: 20px; margin-top: 8px; }
+        
+        .pulse-dot { width: 8px; height: 8px; background-color: #3fb950; border-radius: 50%; box-shadow: 0 0 8px #3fb950; animation: pulseDot 1.5s infinite; }
+        @keyframes pulseDot { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; } }
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; opacity: 0.4; }
+        * { box-sizing: border-box; }
+        body { background-color: #0d1117; color: #c9d1d9; font-family: monospace, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        
+        .container { background: rgba(22, 27, 34, 0.9); padding: 2rem; border-radius: 14px; border: 1px solid #30363d; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); text-align: center; width: 100%; max-width: 800px; }
+        
+        h2 { color: #58a6ff; margin-top: 0; font-size: 2rem; }
+        .btn { background: #238636; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 6px; font-weight: bold; font-family: monospace; font-size: 1.1rem; margin: 5px; width: 80%; max-width: 300px; transition: 0.2s; }
+        .btn:hover { background: #2ea043; }
+        .btn-secondary { background: #30363d; }
+        .btn-secondary:hover { background: #484f58; }
+        select { background: #0d1117; color: #58a6ff; border: 1px solid #30363d; padding: 8px; font-size: 1.1rem; border-radius: 5px; font-family: monospace; width: 80%; max-width: 300px; margin-bottom: 15px; }
+
+        #slicer-area { width: 100%; height: 450px; background: #0d1117; border: 2px solid #30363d; border-radius: 12px; position: relative; overflow: hidden; touch-action: none; cursor: crosshair; margin-top: 15px;}
+        .slice-obj { position: absolute; width: 60px; height: 60px; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #161b22; user-select: none; font-size: 1.5rem; }
+        .slice-obj.target { background: #3fb950; box-shadow: 0 0 20px #3fb950; }
+        .slice-obj.bomb { background: #f85149; box-shadow: 0 0 20px #f85149; border-radius: 50%; }
+        .slice-trail { position: absolute; width: 12px; height: 12px; background: rgba(255, 255, 255, 0.8); box-shadow: 0 0 10px white; border-radius: 50%; pointer-events: none; z-index: 10; transition: opacity 0.2s; }
+
+        .screen { display: none; }
+        .active { display: block; }
+        .results-board { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 15px; margin-top: 15px; text-align: left; display: none; }
+        .results-board span { color: #58a6ff; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <!-- LIVE INTERACTIVE PARTICLE CANVAS -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- Animated BrainGym Header -->
+    <div class="app-header">
+        <h1>⚡ BrainGym</h1>
+        <div class="live-status">
+            <span class="pulse-dot"></span> Neuro-Analytics Engine Active
+        </div>
+    </div>
+    
+    <!-- SETUP SCREEN -->
+    <div id="setup-screen" class="container screen active">
+        <h2>Neural Slicer Setup</h2>
+        <p>Spawn Rate:</p>
+        <select id="game-level">
+            <option value="easy">PRO (Slow)</option>
+            <option value="medium">LEGEND (Fast)</option>
+            <option value="hard">THE GOAT (Extreme)</option>
+        </select>
+        <p>Round Duration:</p>
+        <select id="game-time">
+            <option value="30">30 Seconds</option>
+            <option value="60">60 Seconds</option>
+        </select>
+        <br><br>
+        <button class="btn" onclick="startSlicerGame()">Start Module</button><br>
+        <button class="btn btn-secondary" onclick="window.location.href='/game'">Back to Menu</button>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="slicer-screen" class="container screen">
+        <h2>Neural Slicer</h2>
+        <div style="display: flex; justify-content: space-between; font-size: 1.2rem;">
+            <span style="color: #3fb950;">Score: <span id="slicer-score-val">0</span></span>
+            <span style="color: #f85149;">Strikes: <span id="slicer-strikes-val">0</span> / 3</span>
+            <span style="color: #d29922;">Time: <span id="slicer-time-val">30</span>s</span>
+        </div>
+        <div id="slicer-area">
+            <div id="slicer-start-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #8b949e; pointer-events: none;">Click & Drag to Slice</div>
+        </div>
+        <div class="results-board" id="slicer-results"></div>
+        <button id="back-btn" class="btn btn-secondary" style="display:none; margin-top: 15px; width: 100%; max-width: none;" onclick="window.location.href='/game'">Back to Menu</button>
+    </div>
+
+    <script>
+        // ================= LIVE BACKGROUND CANVAS =================
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: null, y: null };
+
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+        resizeCanvas();
+
+        for (let i = 0; i < 45; i++) {
+            particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, vx: (Math.random() - 0.5) * 0.9, vy: (Math.random() - 0.5) * 0.9, radius: Math.random() * 2 + 1 });
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = '#58a6ff'; ctx.fill();
+
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if (dist < 130) {
+                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = `rgba(88, 166, 255, ${1 - dist / 130})`; ctx.lineWidth = 0.6; ctx.stroke();
+                    }
+                }
+
+                if (mouse.x && mouse.y) {
+                    const mDist = Math.hypot(p.x - mouse.x, p.y - mouse.y);
+                    if (mDist < 150) {
+                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mouse.x, mouse.y);
+                        ctx.strokeStyle = `rgba(63, 185, 80, ${1 - mDist / 150})`; ctx.lineWidth = 0.8; ctx.stroke();
+                    }
+                }
+            });
+            requestAnimationFrame(animateCanvas);
+        }
+        animateCanvas();
+        let slicerScore = 0, slicerStrikes = 0, slicerTime = 30, slicerPhysicsInt, slicerSpawnInt, slicerTimerInt;
+        let activeTargets = [], isSlashing = false;
+        
+        const slicerArea = document.getElementById('slicer-area');
+        
+        slicerArea.addEventListener('pointerdown', () => isSlashing = true);
+        window.addEventListener('pointerup', () => isSlashing = false);
+        
+        slicerArea.addEventListener('pointermove', (e) => {
+            if (!isSlashing) return;
+            const trail = document.createElement('div');
+            trail.className = 'slice-trail';
+            trail.style.left = (e.clientX - slicerArea.getBoundingClientRect().left) + 'px';
+            trail.style.top = (e.clientY - slicerArea.getBoundingClientRect().top) + 'px';
+            slicerArea.appendChild(trail);
+            setTimeout(() => { trail.style.opacity = '0'; setTimeout(() => trail.remove(), 200); }, 50);
+
+            const elements = document.elementsFromPoint(e.clientX, e.clientY);
+            elements.forEach(el => {
+                if (el.classList.contains('slice-obj') && !el.dataset.sliced) sliceTarget(el);
+            });
+        });
+
+        function startSlicerGame() {
+            const level = document.getElementById('game-level').value;
+            slicerTime = parseInt(document.getElementById('game-time').value);
+            slicerScore = 0; slicerStrikes = 0; activeTargets = [];
+            
+            document.getElementById('setup-screen').classList.remove('active');
+            document.getElementById('slicer-screen').classList.add('active');
+            
+            document.getElementById('slicer-score-val').innerText = slicerScore;
+            document.getElementById('slicer-strikes-val').innerText = slicerStrikes;
+            document.getElementById('slicer-time-val').innerText = slicerTime;
+            document.getElementById('slicer-start-text').style.display = 'block';
+            
+            slicerTimerInt = setInterval(() => {
+                slicerTime--; document.getElementById('slicer-time-val').innerText = slicerTime;
+                if (slicerTime <= 0) endSlicerGame();
+            }, 1000);
+
+            const spawnRate = level === 'easy' ? 1200 : (level === 'medium' ? 800 : 500);
+            slicerSpawnInt = setInterval(spawnSlicerTarget, spawnRate);
+            slicerPhysicsInt = setInterval(updateSlicerPhysics, 16);
+        }
+
+        function spawnSlicerTarget() {
+            document.getElementById('slicer-start-text').style.display = 'none';
+            const obj = document.createElement('div');
+            const isBomb = Math.random() < 0.2; 
+            
+            obj.className = `slice-obj ${isBomb ? 'bomb' : 'target'}`;
+            obj.innerText = isBomb ? '💣' : '🟩';
+            obj.dataset.isBomb = isBomb;
+            
+            const startX = Math.random() * (slicerArea.clientWidth - 80) + 40;
+            obj.style.left = startX + 'px';
+            obj.style.bottom = '-60px'; 
+            slicerArea.appendChild(obj);
+            
+            activeTargets.push({
+                el: obj, x: startX, y: slicerArea.clientHeight + 60,
+                vx: (Math.random() - 0.5) * 4, vy: -(Math.random() * 8 + 12),
+                rot: 0, rotSpeed: (Math.random() - 0.5) * 10
+            });
+        }
+
+        function updateSlicerPhysics() {
+            for (let i = activeTargets.length - 1; i >= 0; i--) {
+                let t = activeTargets[i];
+                t.vy += 0.25; 
+                t.x += t.vx; t.y += t.vy; t.rot += t.rotSpeed;
+                t.el.style.transform = `translate(${t.x - parseFloat(t.el.style.left)}px, ${t.y - slicerArea.clientHeight}px) rotate(${t.rot}deg)`;
+
+                if (t.y > slicerArea.clientHeight + 100 && t.vy > 0) {
+                    if (t.el.dataset.isBomb === 'false' && !t.el.dataset.sliced) registerStrike(); 
+                    t.el.remove();
+                    activeTargets.splice(i, 1);
+                }
+            }
+        }
+
+        function sliceTarget(el) {
+            el.dataset.sliced = "true";
+            if (el.dataset.isBomb === 'true') {
+                registerStrike(); registerStrike(); 
+                el.style.background = '#fff'; el.innerText = '💥';
+            } else {
+                slicerScore += 10;
+                document.getElementById('slicer-score-val').innerText = slicerScore;
+                el.style.background = 'transparent'; el.innerText = '✨';
+            }
+            el.style.transition = 'transform 0.3s, opacity 0.3s';
+            el.style.transform += ' scale(1.5)'; el.style.opacity = '0';
+            setTimeout(() => el.remove(), 300);
+        }
+
+        function registerStrike() {
+            slicerStrikes++;
+            document.getElementById('slicer-strikes-val').innerText = `${slicerStrikes} / 3`;
+            slicerArea.style.borderColor = '#f85149';
+            setTimeout(() => slicerArea.style.borderColor = '#30363d', 200);
+            if (slicerStrikes >= 3) { slicerTime = 0; endSlicerGame(); }
+        }
+
+        async function endSlicerGame() {
+            clearInterval(slicerPhysicsInt); clearInterval(slicerSpawnInt); clearInterval(slicerTimerInt);
+            document.querySelectorAll('.slice-obj').forEach(e => e.remove());
+            
+            const res = document.getElementById('slicer-results');
+            res.innerHTML = `Final Score: <span>${slicerScore}</span><br>Strikes Allowed: <span>${slicerStrikes}/3</span><br><br>Dynamic tracking sequence complete.`;
+            res.style.display = 'block';
+            document.getElementById('back-btn').style.display = 'block';
+
+            const token = localStorage.getItem('braingym_token');
+            if (token) {
+                try {
+                    await fetch('/api/scores', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ game: 'Neural Slicer', score: slicerScore })
+                    });
+                } catch (err) { console.error(err); }
+            }
+        }
+    </script>
+</body>
+</html>

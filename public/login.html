@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainGym - Authentication</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            background-color: #0d1117; color: #c9d1d9; 
+            font-family: monospace, sans-serif; 
+            display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            min-height: 100vh; margin: 0; padding: 20px;
+        }
+        h1 { color: #58a6ff; text-shadow: 0 0 15px rgba(88, 166, 255, 0.4); margin-bottom: 5px; font-size: 2.5rem;}
+        .subtitle { color: #8b949e; margin-bottom: 30px; font-size: 1rem; }
+
+        .auth-container { 
+            background: rgba(22, 27, 34, 0.9); padding: 2.5rem; 
+            border-radius: 12px; border: 1px solid #30363d; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); 
+            text-align: center; width: 100%; max-width: 400px;
+        }
+        
+        .toggle-btns { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .toggle-btn {
+            background: transparent; color: #8b949e; border: none; 
+            font-size: 1.1rem; font-family: monospace; font-weight: bold;
+            cursor: pointer; padding-bottom: 5px; border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .toggle-btn.active { color: #58a6ff; border-bottom: 2px solid #58a6ff; }
+
+        form { display: flex; flex-direction: column; gap: 15px; }
+        input { 
+            background: #0d1117; color: #58a6ff; border: 1px solid #30363d; 
+            padding: 12px; font-size: 1rem; outline: none; border-radius: 6px; font-family: monospace;
+            width: 100%; transition: border-color 0.3s;
+        }
+        input:focus { border-color: #58a6ff; }
+
+        .btn { 
+            background: #238636; color: white; border: none; padding: 12px; 
+            cursor: pointer; border-radius: 6px; font-weight: bold; font-family: monospace;
+            font-size: 1.1rem; transition: 0.2s all; width: 100%; margin-top: 10px;
+        }
+        .btn:hover { background: #2ea043; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(46, 160, 67, 0.4); }
+
+        .feedback { min-height: 20px; font-size: 0.9rem; margin-top: 15px; font-weight: bold; }
+        .error { color: #f85149; }
+        .success { color: #3fb950; }
+
+        #signup-form { display: none; }
+    </style>
+</head>
+<body>
+
+    <h1>⚡ BrainGym</h1>
+    <p class="subtitle">Cognitive Performance Analytics</p>
+
+    <div class="auth-container">
+        <div class="toggle-btns">
+            <button class="toggle-btn active" id="btn-login" onclick="switchTab('login')">Log In</button>
+            <button class="toggle-btn" id="btn-signup" onclick="switchTab('signup')">Sign Up</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <input type="email" id="login-email" placeholder="Email Address" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button type="submit" class="btn">Authenticate</button>
+        </form>
+
+        <!-- SIGNUP FORM -->
+        <form id="signup-form" onsubmit="handleSignup(event)">
+            <input type="text" id="signup-name" placeholder="Full Name" required>
+            <input type="email" id="signup-email" placeholder="Email Address" required>
+            <input type="password" id="signup-password" placeholder="Create Password" required>
+            <button type="submit" class="btn">Create Profile</button>
+        </form>
+
+        <p id="auth-message" class="feedback"></p>
+    </div>
+
+<script>
+        function switchTab(tab) {
+            document.getElementById('auth-message').innerText = '';
+            if (tab === 'login') {
+                document.getElementById('login-form').style.display = 'flex';
+                document.getElementById('signup-form').style.display = 'none';
+                document.getElementById('btn-login').classList.add('active');
+                document.getElementById('btn-signup').classList.remove('active');
+            } else {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('signup-form').style.display = 'flex';
+                document.getElementById('btn-signup').classList.add('active');
+                document.getElementById('btn-login').classList.remove('active');
+            }
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const msgBox = document.getElementById('auth-message');
+
+            msgBox.className = 'feedback';
+            msgBox.innerText = 'Creating profile...';
+
+            try {
+                const res = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    msgBox.className = 'feedback success';
+                    msgBox.innerText = data.message;
+                    setTimeout(() => switchTab('login'), 2000); // Auto-switch to login
+                } else {
+                    msgBox.className = 'feedback error';
+                    msgBox.innerText = data.message || 'Signup failed.';
+                }
+            } catch (err) {
+                msgBox.className = 'feedback error';
+                msgBox.innerText = 'Server connection error.';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const msgBox = document.getElementById('auth-message');
+
+            msgBox.className = 'feedback';
+            msgBox.innerText = 'Authenticating...';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    msgBox.className = 'feedback success';
+                    msgBox.innerText = 'Access Granted! Redirecting...';
+                    
+                    // Securely store user session data in the browser
+                    localStorage.setItem('braingym_token', data.token);
+                    localStorage.setItem('braingym_name', data.name);
+                    localStorage.setItem('braingym_streak', data.streak);
+
+                    // Redirect to the main game dashboard
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    msgBox.className = 'feedback error';
+                    msgBox.innerText = data.message || 'Login failed.';
+                }
+            } catch (err) {
+                msgBox.className = 'feedback error';
+                msgBox.innerText = 'Server connection error.';
+            }
+        }
+    </script>
+</body>
+</html>
