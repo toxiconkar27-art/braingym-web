@@ -226,10 +226,48 @@
     <!-- INTERACTIVE NEURAL NETWORK BACKGROUND -->
     <canvas id="bg-canvas"></canvas>
 
-    <!-- TOP MIDDLE BUTTON -->
-<header>
-    <a href="/game" class="btn-test">⚡ Test Yourself</a>
-</header>
+<!-- TOP NAVIGATION MENU -->
+    <header style="justify-content: space-between; padding: 0 30px;">
+        <!-- Left spacer (keeps the center button perfectly in the middle) -->
+        <div style="width: 250px;"></div>
+        
+        <!-- Center Guest Button -->
+        <a href="/game" class="btn-test">⚡ Test Yourself (Guest)</a>
+        
+        <!-- Right Corner Auth Menu -->
+        <div style="width: 250px; display: flex; justify-content: flex-end; gap: 15px;">
+            <a href="/login" style="
+                color: #c9d1d9; 
+                text-decoration: none; 
+                font-family: monospace; 
+                font-size: 1rem; 
+                padding: 10px 20px; 
+                border: 1px solid #30363d; 
+                border-radius: 6px; 
+                background: rgba(22, 27, 34, 0.8); 
+                transition: all 0.3s;"
+                onmouseover="this.style.borderColor='#58a6ff'; this.style.color='#58a6ff';" 
+                onmouseout="this.style.borderColor='#30363d'; this.style.color='#c9d1d9';">
+                Log In
+            </a>
+            
+            <a href="/login" style="
+                background: #238636; 
+                color: white; 
+                text-decoration: none; 
+                font-family: monospace; 
+                font-size: 1rem; 
+                padding: 10px 20px; 
+                border-radius: 6px; 
+                font-weight: bold; 
+                transition: all 0.3s; 
+                box-shadow: 0 4px 15px rgba(35, 134, 54, 0.3);"
+                onmouseover="this.style.background='#2ea043'; this.style.transform='translateY(-2px)';" 
+                onmouseout="this.style.background='#238636'; this.style.transform='translateY(0)';">
+                Sign Up
+            </a>
+        </div>
+    </header>
 
     <div class="container">
         
