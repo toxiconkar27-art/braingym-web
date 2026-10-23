@@ -252,6 +252,10 @@
 </head>
 <body>
 
+    <div id="auth-status-bar" style="width: 100%; text-align: center; background: #30363d; padding: 5px; font-size: 0.9rem; margin-bottom: 10px;">
+     Checking status...
+ </div>
+
     <!-- LIVE INTERACTIVE PARTICLE CANVAS -->
     <canvas id="bg-canvas"></canvas>
 
@@ -327,7 +331,37 @@
                 </div>
             </button>
 
-            <!-- Module 5: N-Back Test -->
+            <!-- Module 5: Grid Striker (Whack-a-Mole) -->
+            <button class="image-btn-card" onclick="window.location.href='/mole'">
+                <div class="card-img-box">
+                    <img src="https://images.unsplash.com/photo-1551103782-8ab07afd45c1?auto=format&fit=crop&w=600&q=80" alt="Grid Striker">
+                    <span class="module-badge">Acquisition</span>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <h3>5. Grid Striker</h3>
+                        <p>Peripheral target acquisition. Strike the blue targets, avoid the red bombs.</p>
+                    </div>
+                    <div class="play-bar">Launch Module →</div>
+                </div>
+            </button>
+
+            <!-- Module 6: Neural Slicer (Fruit Ninja) -->
+            <button class="image-btn-card" onclick="window.location.href='/slicer'">
+                <div class="card-img-box">
+                    <img src="https://images.unsplash.com/photo-1555680202-c86f0e12f086?auto=format&fit=crop&w=600&q=80" alt="Neural Slicer">
+                    <span class="module-badge">Tracking</span>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <h3>6. Neural Slicer</h3>
+                        <p>Dynamic motor-tracking. Click and drag to slash green targets out of mid-air.</p>
+                    </div>
+                    <div class="play-bar">Launch Module →</div>
+                </div>
+            </button>
+
+            <!-- Module 7: N-Back Test -->
             <button class="image-btn-card" onclick="openSetup('nback')">
                 <div class="card-img-box">
                     <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80" alt="N-Back Test">
@@ -335,7 +369,7 @@
                 </div>
                 <div class="card-body">
                     <div>
-                        <h3>5. N-Back Test</h3>
+                        <h3>7. N-Back Test</h3>
                         <p>Track continuous letter streams and identify matches from N steps back.</p>
                     </div>
                     <div class="play-bar">Configure & Play →</div>
@@ -458,6 +492,36 @@
     </div>
 
     <script>
+
+        // --- GUEST MODE & STATUS BAR LOGIC ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const token = localStorage.getItem('braingym_token');
+        const name = localStorage.getItem('braingym_name');
+        const statusBar = document.getElementById('auth-status-bar');
+        
+        if (token && name) {
+            // User is logged in
+            statusBar.innerHTML = `Logged in as <b>${name.split(' ')[0]}</b>. Scores are automatically saving. | <a href="/dashboard" style="color: #58a6ff; text-decoration: none; font-weight: bold;">Go to Dashboard</a>`;
+            statusBar.style.background = 'rgba(46, 160, 67, 0.2)'; // Green tint
+            statusBar.style.borderBottom = '1px solid #3fb950';
+        } else {
+            // User is playing as a Guest
+            statusBar.innerHTML = `Playing as <b>Guest</b>. Scores will NOT be saved. | <a href="/login" style="color: #f85149; text-decoration: none; font-weight: bold;">Log in to save data</a>`;
+            statusBar.style.background = 'rgba(248, 81, 73, 0.2)'; // Red tint
+            statusBar.style.borderBottom = '1px solid #f85149';
+        }
+
+        // --- AUTO-LAUNCH LISTENER ---
+        const autoLaunch = localStorage.getItem('braingym_autolaunch');
+        if (autoLaunch) {
+            localStorage.removeItem('braingym_autolaunch'); // Clear it so it only happens once
+            setTimeout(() => {
+                if (autoLaunch === 'reaction') startReactionGame();
+                else openSetup(autoLaunch);
+            }, 500); // 500ms delay ensures the page loads fully first
+        }
+
+    });
         // ================= LIVE BACKGROUND CANVAS =================
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
@@ -551,11 +615,20 @@
             showScreen('menu-screen');
         }
 
-        async function submitScore(gameName, score) {
+async function submitScore(gameName, score) {
+            // 1. Grab the secure login token
+            const token = localStorage.getItem('braingym_token');
+            
+            // If they aren't logged in, skip saving (Guest Mode)
+            if (!token) return; 
+
             try {
                 await fetch('/api/scores', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` // Proves the user is logged in
+                    },
                     body: JSON.stringify({ game: gameName, score: score })
                 });
             } catch (err) { console.error("Failed to save:", err); }
@@ -599,24 +672,55 @@
             showScreen('scores-screen');
             const tbody = document.getElementById('scores-body');
             tbody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
+            
+            // Grab the token
+            const token = localStorage.getItem('braingym_token');
+            
+            // If the user is a guest, tell them they have no history
+            if (!token) {
+                tbody.innerHTML = '<tr><td colspan="3" style="color: #f85149;">Guests do not have a score history. Log in to save scores!</td></tr>';
+                return;
+            }
+
             try {
-                const res = await fetch('/api/scores');
+                // Send the token in the headers to get past the security checkpoint
+                const res = await fetch('/api/scores', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const scores = await res.json();
+                
                 tbody.innerHTML = '';
-                if (scores.length === 0) tbody.innerHTML = '<tr><td colspan="3">No scores yet!</td></tr>';
+                if (scores.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3">No scores yet! Play a module to start tracking.</td></tr>';
+                    return;
+                }
+                
+                // Display the scores
                 scores.forEach(s => {
                     const date = new Date(s.timestamp).toLocaleDateString() + " " + new Date(s.timestamp).toLocaleTimeString();
                     tbody.innerHTML += `<tr><td>${s.game}</td><td>${s.score}</td><td>${date}</td></tr>`;
                 });
-            } catch (err) { tbody.innerHTML = '<tr><td colspan="3">Error loading scores.</td></tr>'; }
+            } catch (err) { 
+                tbody.innerHTML = '<tr><td colspan="3">Error loading scores.</td></tr>'; 
+            }
         }
 
         async function clearScores() {
-            if(!confirm("Are you sure you want to delete all previous scores?")) return;
+            const token = localStorage.getItem('braingym_token');
+            if (!token) return alert("You are playing as a guest. No scores to delete.");
+
+            if(!confirm("Are you sure you want to completely wipe your score history?")) return;
+            
             try {
-                await fetch('/api/scores', { method: 'DELETE' });
-                viewScores();
-            } catch (err) { console.error("Failed to delete scores", err); }
+                // Send the delete request securely
+                await fetch('/api/scores', { 
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                viewScores(); // Refresh the table
+            } catch (err) { 
+                console.error("Failed to delete scores", err); 
+            }
         }
 
         // ================= 1. MENTAL MATH SPRINT =================
